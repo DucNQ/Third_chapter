@@ -16,6 +16,8 @@ describe User do
   it { should respond_to(:password) }
   it { should respond_to(:password_confirmation) }
   it { should respond_to(:authenticate) }
+  it { should respond_to(:remember_token) }
+  it { should respond_to(:authenticate) }
 
   it { should be_valid }  
 
@@ -63,7 +65,7 @@ describe User do
 	  	addresses = %w[user@foo.com user_@foo.org valliiiid@foo.jp]
 	  	addresses.each do |valid_address|
 	  		@user.email = valid_address
-	  		expect(@user).to be_valid
+	  		expect(@user).to be_valid 
 	  	end
   	end
   end
@@ -109,9 +111,25 @@ describe User do
   	end
 
   	describe "with a password that's too short" do
-	  before { @user.password = @user.password_confirmation = "a" * 5 }
-	  it { should be_invalid }
-	end
+  	  before { @user.password = @user.password_confirmation = "a" * 5 }
+  	  it { should be_invalid }
+  	end
+  
+    describe "after saving the user" do
+      before { click_button submit}
+      let(:user) { User.find_by(email: 'user@example.com') }
+
+      it { should have_link('Sign out') }
+      it { should have_title(user.name) }
+      it { should have_selector('div.alert.alert-success', text: 'Welcome') }
+      
+    end
+
+  end
+
+  describe "remember token" do
+    before {@user.save}
+    its(:remember_token) { should_not be_blank }
   end
 
 end

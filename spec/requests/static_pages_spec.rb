@@ -9,6 +9,27 @@ describe "Static pages" do
     it { should have_title(full_title(page_title)) }
   end  
 
+  describe "signed in user with microposts" do
+    let(:user) { FactoryGirl.create(:user, name: "user1", email: "user1@email.com") }
+    
+    before(:all) { 50.times { FactoryGirl.create(:micropost, user: user)} }
+    after(:all) { user.destroy }
+    describe "pagination" do
+      before do  
+        sign_in user
+        visit root_url 
+      end
+      it { should have_content('Micropost Feed')}
+      it { should have_selector('div.pagination') }
+
+      it "should list each micropost" do
+        user.microposts.paginate(page: 1).each do |micropost|
+          expect(page).to have_selector('span', text: micropost.content)
+        end
+      end
+    end
+  end
+
   describe "Home page" do
     before { visit root_path }
     let(:heading) { 'Sample App' }
@@ -16,7 +37,7 @@ describe "Static pages" do
 
     it_should_behave_like "all static pages"
     describe "for signed-in users" do
-      let(:user) { FactoryGirl.create(:user) }
+      let(:user) { FactoryGirl.create(:user, name: "user2", email: "user2@email.com") }
       before do
         FactoryGirl.create(:micropost, user: user, content: "Lorem ipsum")
         FactoryGirl.create(:micropost, user: user, content: "Dolor sit amet")
@@ -24,11 +45,21 @@ describe "Static pages" do
         sign_in user
         visit root_path
       end
-
       it "should render the user's feed" do
         user.feed.each do |item|
           expect(page).to have_selector("li##{item.id}", text: item.content)
         end
+      end
+
+      describe "follower/following counts" do
+        let(:other_user) { FactoryGirl.create(:user)}
+        before do
+          other_user.follow!(user)
+          visit root_path
+        end
+
+        it { should have_link("0 following", href: following_user_path(user)) }
+        it { should have_link("1 followers", href: followers_user_path(user)) }
       end
     end
   end
